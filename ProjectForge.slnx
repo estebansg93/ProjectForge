@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ProjectForge.Api/ProjectForge.Api.csproj" />
+  </Folder>
+</Solution>
