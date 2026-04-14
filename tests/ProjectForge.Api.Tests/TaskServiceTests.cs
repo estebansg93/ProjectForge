@@ -8,13 +8,12 @@ namespace ProjectForge.Api.Tests;
 
 public class TaskServiceTests
 {
-    private static AppDbContext CreateDb()
-    {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
+    private static DbContextOptions<AppDbContext> CreateOptions() =>
+        new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
-        return new AppDbContext(options);
-    }
+
+    private static AppDbContext CreateDb() => new(CreateOptions());
 
     private static ProjectTask SeedTask(AppDbContext db, Guid projectId, Guid taskId)
     {
@@ -92,20 +91,28 @@ public class TaskServiceTests
     [Fact]
     public async System.Threading.Tasks.Task UpdateAsync_PersistsChanges_ToDatabase()
     {
-        using var db = CreateDb();
-        var service = new TaskService(db);
-
+        // Use a named in-memory database so a second context shares the same store,
+        // proving SaveChangesAsync actually wrote through rather than relying on
+        // the first context's change tracker to satisfy FindAsync.
+        var options = CreateOptions();
         var projectId = Guid.NewGuid();
         var taskId = Guid.NewGuid();
-        SeedTask(db, projectId, taskId);
 
-        await service.UpdateAsync(projectId, taskId,
-            new UpdateTaskRequest("Persisted", "Desc", "Done", "Low"));
+        using (var db = new AppDbContext(options))
+        {
+            SeedTask(db, projectId, taskId);
+            var service = new TaskService(db);
+            await service.UpdateAsync(projectId, taskId,
+                new UpdateTaskRequest("Persisted", "Desc", "Done", "Low"));
+        }
 
-        var stored = await db.Tasks.FindAsync(taskId);
-        Assert.NotNull(stored);
-        Assert.Equal("Persisted", stored.Title);
-        Assert.Equal("Done", stored.Status);
+        using (var db = new AppDbContext(options))
+        {
+            var stored = await db.Tasks.FindAsync(taskId);
+            Assert.NotNull(stored);
+            Assert.Equal("Persisted", stored.Title);
+            Assert.Equal("Done", stored.Status);
+        }
     }
 
     [Fact]
@@ -117,13 +124,17 @@ public class TaskServiceTests
         var projectId = Guid.NewGuid();
         var taskId = Guid.NewGuid();
         var original = SeedTask(db, projectId, taskId);
+        // Snapshot the value before calling UpdateAsync so that if the service
+        // accidentally mutates CreatedAt on the tracked entity, this assertion
+        // still catches it (both references would otherwise reflect the same change).
+        var expectedCreatedAt = original.CreatedAt;
 
         var result = await service.UpdateAsync(projectId, taskId,
             new UpdateTaskRequest("New", null, "Done", "High"));
 
         Assert.NotNull(result);
         Assert.Equal(projectId, result.ProjectId);
-        Assert.Equal(original.CreatedAt, result.CreatedAt);
+        Assert.Equal(expectedCreatedAt, result.CreatedAt);
     }
 
     [Fact]
