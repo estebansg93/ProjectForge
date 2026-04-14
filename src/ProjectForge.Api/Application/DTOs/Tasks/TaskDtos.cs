@@ -14,5 +14,10 @@ public record TaskResponse(
     string Priority,
     DateTime CreatedAt);
 
-// TODO: Add UpdateTaskRequest when PATCH/PUT task endpoints are implemented.
+public record UpdateTaskRequest(
+    string Title,
+    string? Description,
+    string Status,
+    string Priority);
+
 // TODO: Add AssigneeId to CreateTaskRequest when user assignment is supported.
