@@ -36,9 +36,27 @@ public class TasksController(ITaskService taskService) : ControllerBase
         var task = await taskService.CreateAsync(projectId, request);
         return Created($"api/projects/{projectId}/tasks/{task.Id}", task);
 
-        // TODO: Add PUT /api/projects/{projectId}/tasks/{taskId}
         // TODO: Add DELETE /api/projects/{projectId}/tasks/{taskId}
         // TODO: Add PATCH /api/projects/{projectId}/tasks/{taskId}/status for status transitions.
         // TODO: Add GET /api/projects/{projectId}/tasks/{taskId} for single task retrieval.
+    }
+
+    /// <summary>
+    /// Updates an existing task. Replaces all editable fields (title, description, status, priority).
+    /// </summary>
+    [HttpPut("{taskId:guid}")]
+    [ProducesResponseType(typeof(TaskResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(Guid projectId, Guid taskId, [FromBody] UpdateTaskRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Title))
+            return BadRequest(new { message = "Task title is required." });
+
+        var task = await taskService.UpdateAsync(projectId, taskId, request);
+        if (task is null)
+            return NotFound(new { message = "Task not found." });
+
+        return Ok(task);
     }
 }

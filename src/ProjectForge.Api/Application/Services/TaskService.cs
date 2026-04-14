@@ -44,7 +44,21 @@ public class TaskService(AppDbContext db) : ITaskService
         return ToResponse(task);
     }
 
-    // TODO: Implement UpdateAsync including status transitions.
+    public async Task<TaskResponse?> UpdateAsync(Guid projectId, Guid taskId, UpdateTaskRequest request)
+    {
+        var task = await db.Tasks.FirstOrDefaultAsync(t => t.Id == taskId && t.ProjectId == projectId);
+        if (task is null)
+            return null;
+
+        task.Title = request.Title;
+        task.Description = request.Description;
+        task.Status = request.Status;
+        task.Priority = request.Priority;
+
+        await db.SaveChangesAsync();
+        return ToResponse(task);
+    }
+
     // TODO: Implement DeleteAsync.
 
     private static TaskResponse ToResponse(ProjectTask t) =>
