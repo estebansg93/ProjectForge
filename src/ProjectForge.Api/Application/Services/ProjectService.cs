@@ -49,9 +49,41 @@ public class ProjectService(AppDbContext db) : IProjectService
         return ToResponse(project);
     }
 
-    // TODO: Implement UpdateAsync(Guid id, UpdateProjectRequest request).
-    // TODO: Implement DeleteAsync(Guid id) — consider soft delete.
-    // TODO: Implement ArchiveAsync(Guid id) as a domain-meaningful status transition.
+    public async Task<ProjectResponse?> UpdateAsync(Guid id, UpdateProjectRequest request)
+    {
+        var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == id);
+        if (project is null)
+            return null;
+
+        project.Name = request.Name;
+        project.Description = request.Description;
+        project.Status = request.Status;
+
+        await db.SaveChangesAsync();
+        return ToResponse(project);
+    }
+
+    public async Task<ProjectResponse?> UpdateStatusAsync(Guid id, string status)
+    {
+        var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == id);
+        if (project is null)
+            return null;
+
+        project.Status = status;
+        await db.SaveChangesAsync();
+        return ToResponse(project);
+    }
+
+    public async Task<bool> DeleteAsync(Guid id)
+    {
+        var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == id);
+        if (project is null)
+            return false;
+
+        db.Projects.Remove(project);
+        await db.SaveChangesAsync();
+        return true;
+    }
 
     private static ProjectResponse ToResponse(Project p) =>
         new(p.Id, p.Name, p.Description, p.Status, p.CreatedAt);

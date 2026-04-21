@@ -7,9 +7,10 @@ public interface IProjectService
     Task<IEnumerable<ProjectResponse>> GetAllAsync();
     Task<ProjectResponse?> GetByIdAsync(Guid id);
     Task<ProjectResponse> CreateAsync(CreateProjectRequest request);
+    Task<ProjectResponse?> UpdateAsync(Guid id, UpdateProjectRequest request);
+    Task<ProjectResponse?> UpdateStatusAsync(Guid id, string status);
+    Task<bool> DeleteAsync(Guid id);
 
-    // TODO: Task<ProjectResponse?> UpdateAsync(Guid id, UpdateProjectRequest request);
-    // TODO: Task<bool> DeleteAsync(Guid id);
     // TODO: Add pagination: Task<PagedResult<ProjectResponse>> GetPagedAsync(int page, int pageSize);
     // TODO: Add filtering by status.
 }
