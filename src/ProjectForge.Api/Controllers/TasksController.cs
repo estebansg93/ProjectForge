@@ -36,9 +36,23 @@ public class TasksController(ITaskService taskService) : ControllerBase
         var task = await taskService.CreateAsync(projectId, request);
         return Created($"api/projects/{projectId}/tasks/{task.Id}", task);
 
-        // TODO: Add DELETE /api/projects/{projectId}/tasks/{taskId}
         // TODO: Add PATCH /api/projects/{projectId}/tasks/{taskId}/status for status transitions.
         // TODO: Add GET /api/projects/{projectId}/tasks/{taskId} for single task retrieval.
+    }
+
+    /// <summary>
+    /// Deletes a task by ID within a project.
+    /// </summary>
+    [HttpDelete("{taskId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid projectId, Guid taskId)
+    {
+        var deleted = await taskService.DeleteAsync(projectId, taskId);
+        if (!deleted)
+            return NotFound(new { message = "Task not found." });
+
+        return NoContent();
     }
 
     /// <summary>

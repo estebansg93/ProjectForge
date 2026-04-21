@@ -103,4 +103,49 @@ public class TasksControllerTests
 
         _mockService.Verify(s => s.UpdateAsync(projectId, taskId, request), Times.Once);
     }
+
+    [Fact]
+    public async System.Threading.Tasks.Task Delete_ReturnsNotFound_WhenServiceReturnsFalse()
+    {
+        var projectId = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
+
+        _mockService
+            .Setup(s => s.DeleteAsync(projectId, taskId))
+            .ReturnsAsync(false);
+
+        var result = await _controller.Delete(projectId, taskId);
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task Delete_ReturnsNoContent_WhenServiceReturnsTrue()
+    {
+        var projectId = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
+
+        _mockService
+            .Setup(s => s.DeleteAsync(projectId, taskId))
+            .ReturnsAsync(true);
+
+        var result = await _controller.Delete(projectId, taskId);
+
+        Assert.IsType<NoContentResult>(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task Delete_CallsService_WithCorrectArguments()
+    {
+        var projectId = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
+
+        _mockService
+            .Setup(s => s.DeleteAsync(projectId, taskId))
+            .ReturnsAsync(true);
+
+        await _controller.Delete(projectId, taskId);
+
+        _mockService.Verify(s => s.DeleteAsync(projectId, taskId), Times.Once);
+    }
 }

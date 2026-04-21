@@ -59,7 +59,16 @@ public class TaskService(AppDbContext db) : ITaskService
         return ToResponse(task);
     }
 
-    // TODO: Implement DeleteAsync.
+    public async Task<bool> DeleteAsync(Guid projectId, Guid taskId)
+    {
+        var task = await db.Tasks.FirstOrDefaultAsync(t => t.Id == taskId && t.ProjectId == projectId);
+        if (task is null)
+            return false;
+
+        db.Tasks.Remove(task);
+        await db.SaveChangesAsync();
+        return true;
+    }
 
     private static TaskResponse ToResponse(ProjectTask t) =>
         new(t.Id, t.ProjectId, t.Title, t.Description, t.Status, t.Priority, t.CreatedAt);
