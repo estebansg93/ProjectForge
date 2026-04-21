@@ -8,17 +8,18 @@ namespace ProjectForge.Api.Application.Services;
 
 public class ProjectService(AppDbContext db) : IProjectService
 {
-    public async Task<IEnumerable<ProjectResponse>> GetAllAsync()
+    public async Task<IEnumerable<ProjectSummaryResponse>> GetAllAsync(int page, int pageSize, string? status)
     {
         return await db.Projects
             .AsNoTracking()
+            .Where(p => status == null || p.Status == status)
             .OrderByDescending(p => p.CreatedAt)
-            .Select(p => ToResponse(p))
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new ProjectSummaryResponse(
+                p.Id, p.Name, p.Description, p.Status, p.CreatedAt,
+                p.Tasks.Count, p.Notes.Count, p.Incidents.Count))
             .ToListAsync();
-
-        // TODO: Add pagination (page, pageSize parameters).
-        // TODO: Add filtering by status.
-        // TODO: Include task/note/incident counts in response.
     }
 
     public async Task<ProjectResponse?> GetByIdAsync(Guid id)

@@ -17,6 +17,79 @@ public class ProjectsControllerTests
         _controller = new ProjectsController(_mockService.Object);
     }
 
+    // --- GetAll ---
+
+    [Fact]
+    public async Task GetAll_ReturnsBadRequest_WhenPageIsZero()
+    {
+        var result = await _controller.GetAll(page: 0);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        _mockService.Verify(s => s.GetAllAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetAll_ReturnsBadRequest_WhenPageSizeIsZero()
+    {
+        var result = await _controller.GetAll(pageSize: 0);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task GetAll_ReturnsBadRequest_WhenPageSizeExceedsMax()
+    {
+        var result = await _controller.GetAll(pageSize: 101);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task GetAll_ReturnsBadRequest_WhenStatusIsInvalid()
+    {
+        var result = await _controller.GetAll(status: "InvalidStatus");
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        _mockService.Verify(s => s.GetAllAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetAll_ReturnsOk_WithDefaults()
+    {
+        _mockService
+            .Setup(s => s.GetAllAsync(1, 20, null))
+            .ReturnsAsync([]);
+
+        var result = await _controller.GetAll();
+
+        Assert.IsType<OkObjectResult>(result);
+        _mockService.Verify(s => s.GetAllAsync(1, 20, null), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAll_PassesParametersToService()
+    {
+        _mockService
+            .Setup(s => s.GetAllAsync(2, 10, "Active"))
+            .ReturnsAsync([]);
+
+        await _controller.GetAll(page: 2, pageSize: 10, status: "Active");
+
+        _mockService.Verify(s => s.GetAllAsync(2, 10, "Active"), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAll_ReturnsOk_WhenStatusIsNull()
+    {
+        _mockService
+            .Setup(s => s.GetAllAsync(1, 20, null))
+            .ReturnsAsync([]);
+
+        var result = await _controller.GetAll(status: null);
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
     // --- Update ---
 
     [Fact]

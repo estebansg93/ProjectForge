@@ -4,7 +4,7 @@ namespace ProjectForge.Api.Application.Interfaces;
 
 public interface IProjectService
 {
-    Task<IEnumerable<ProjectResponse>> GetAllAsync();
+    Task<IEnumerable<ProjectSummaryResponse>> GetAllAsync(int page, int pageSize, string? status);
     Task<ProjectResponse?> GetByIdAsync(Guid id);
     Task<ProjectResponse> CreateAsync(CreateProjectRequest request);
     Task<ProjectResponse?> UpdateAsync(Guid id, UpdateProjectRequest request);

@@ -14,13 +14,26 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     private static readonly HashSet<string> ValidStatuses = ["Active", "Archived", "Completed"];
 
     /// <summary>
-    /// Returns all projects. Accessible by any authenticated user.
+    /// Returns a paginated, optionally filtered list of projects.
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<ProjectResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll()
+    [ProducesResponseType(typeof(IEnumerable<ProjectSummaryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? status = null)
     {
-        var projects = await projectService.GetAllAsync();
+        if (page < 1)
+            return BadRequest(new { message = "Page must be greater than or equal to 1." });
+
+        if (pageSize < 1 || pageSize > 100)
+            return BadRequest(new { message = "Page size must be between 1 and 100." });
+
+        if (status is not null && !ValidStatuses.Contains(status))
+            return BadRequest(new { message = $"Invalid status. Allowed values: {string.Join(", ", ValidStatuses)}." });
+
+        var projects = await projectService.GetAllAsync(page, pageSize, status);
         return Ok(projects);
     }
 
