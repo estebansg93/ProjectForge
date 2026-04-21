@@ -39,6 +39,15 @@ public class NoteService(AppDbContext db) : INoteService
         return ToResponse(note);
     }
 
+    public async Task<NoteResponse?> GetByIdAsync(Guid projectId, Guid noteId)
+    {
+        var note = await db.Notes
+            .AsNoTracking()
+            .FirstOrDefaultAsync(n => n.Id == noteId && n.ProjectId == projectId);
+
+        return note is null ? null : ToResponse(note);
+    }
+
     public async Task<bool> DeleteAsync(Guid projectId, Guid noteId)
     {
         var note = await db.Notes.FirstOrDefaultAsync(n => n.Id == noteId && n.ProjectId == projectId);
