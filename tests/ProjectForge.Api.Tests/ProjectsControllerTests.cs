@@ -45,6 +45,15 @@ public class ProjectsControllerTests
     }
 
     [Fact]
+    public async Task GetAll_ReturnsBadRequest_WhenPageOffsetOverflows()
+    {
+        var result = await _controller.GetAll(page: int.MaxValue, pageSize: 100);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        _mockService.Verify(s => s.GetAllAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string?>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GetAll_ReturnsBadRequest_WhenStatusIsInvalid()
     {
         var result = await _controller.GetAll(status: "InvalidStatus");

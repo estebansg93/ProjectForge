@@ -30,6 +30,9 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
         if (pageSize < 1 || pageSize > 100)
             return BadRequest(new { message = "Page size must be between 1 and 100." });
 
+        if ((long)(page - 1) * pageSize > int.MaxValue)
+            return BadRequest(new { message = "Page value is too large." });
+
         if (status is not null && !ValidStatuses.Contains(status))
             return BadRequest(new { message = $"Invalid status. Allowed values: {string.Join(", ", ValidStatuses)}." });
 

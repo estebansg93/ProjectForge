@@ -14,6 +14,7 @@ public class ProjectService(AppDbContext db) : IProjectService
             .AsNoTracking()
             .Where(p => status == null || p.Status == status)
             .OrderByDescending(p => p.CreatedAt)
+            .ThenByDescending(p => p.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(p => new ProjectSummaryResponse(

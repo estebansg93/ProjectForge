@@ -158,6 +158,26 @@ public class ProjectServiceTests
         Assert.Equal("Older", result[1].Name);
     }
 
+    [Fact]
+    public async Task GetAllAsync_IsStable_WhenCreatedAtTimestampsCollide()
+    {
+        var options = CreateOptions();
+        using var db = new AppDbContext(options);
+        var timestamp = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var idA = new Guid("aaaaaaaa-0000-0000-0000-000000000000");
+        var idB = new Guid("bbbbbbbb-0000-0000-0000-000000000000");
+        db.Projects.AddRange(
+            new Project { Id = idA, Name = "A", Status = "Active", CreatedAt = timestamp },
+            new Project { Id = idB, Name = "B", Status = "Active", CreatedAt = timestamp });
+        db.SaveChanges();
+        var service = new ProjectService(db);
+
+        var page1 = (await service.GetAllAsync(page: 1, pageSize: 1, status: null)).Single();
+        var page2 = (await service.GetAllAsync(page: 2, pageSize: 1, status: null)).Single();
+
+        Assert.NotEqual(page1.Id, page2.Id);
+    }
+
     // --- UpdateAsync ---
 
     [Fact]
