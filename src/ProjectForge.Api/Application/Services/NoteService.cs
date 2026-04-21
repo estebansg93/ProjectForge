@@ -48,6 +48,17 @@ public class NoteService(AppDbContext db) : INoteService
         return note is null ? null : ToResponse(note);
     }
 
+    public async Task<NoteResponse?> UpdateAsync(Guid projectId, Guid noteId, UpdateNoteRequest request)
+    {
+        var note = await db.Notes.FirstOrDefaultAsync(n => n.Id == noteId && n.ProjectId == projectId);
+        if (note is null)
+            return null;
+
+        note.Content = request.Content;
+        await db.SaveChangesAsync();
+        return ToResponse(note);
+    }
+
     public async Task<bool> DeleteAsync(Guid projectId, Guid noteId)
     {
         var note = await db.Notes.FirstOrDefaultAsync(n => n.Id == noteId && n.ProjectId == projectId);
@@ -58,8 +69,6 @@ public class NoteService(AppDbContext db) : INoteService
         await db.SaveChangesAsync();
         return true;
     }
-
-    // TODO: Implement UpdateAsync.
 
     private static NoteResponse ToResponse(Note n) =>
         new(n.Id, n.ProjectId, n.Content, n.CreatedAt);
