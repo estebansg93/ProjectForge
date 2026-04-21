@@ -15,7 +15,8 @@ public class TaskServiceTests
 
     private static AppDbContext CreateDb() => new(CreateOptions());
 
-    private static ProjectTask SeedTask(AppDbContext db, Guid projectId, Guid taskId)
+    private static ProjectTask SeedTask(AppDbContext db, Guid projectId, Guid taskId,
+        string status = "Todo", string priority = "Low")
     {
         var task = new ProjectTask
         {
@@ -23,13 +24,144 @@ public class TaskServiceTests
             ProjectId = projectId,
             Title = "Original Title",
             Description = "Original description",
-            Status = "Todo",
-            Priority = "Low",
+            Status = status,
+            Priority = priority,
             CreatedAt = DateTime.UtcNow
         };
         db.Tasks.Add(task);
         db.SaveChanges();
         return task;
+    }
+
+    // --- GetByProjectAsync ---
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetByProjectAsync_ReturnsAllTasks_WhenNoFilter()
+    {
+        using var db = CreateDb();
+        var service = new TaskService(db);
+        var projectId = Guid.NewGuid();
+        SeedTask(db, projectId, Guid.NewGuid());
+        SeedTask(db, projectId, Guid.NewGuid());
+
+        var result = await service.GetByProjectAsync(projectId, page: 1, pageSize: 20, status: null, priority: null);
+
+        Assert.Equal(2, result.Count());
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetByProjectAsync_FiltersByStatus()
+    {
+        using var db = CreateDb();
+        var service = new TaskService(db);
+        var projectId = Guid.NewGuid();
+        SeedTask(db, projectId, Guid.NewGuid(), status: "Todo");
+        SeedTask(db, projectId, Guid.NewGuid(), status: "InProgress");
+        SeedTask(db, projectId, Guid.NewGuid(), status: "Todo");
+
+        var result = await service.GetByProjectAsync(projectId, page: 1, pageSize: 20, status: "Todo", priority: null);
+
+        Assert.Equal(2, result.Count());
+        Assert.All(result, t => Assert.Equal("Todo", t.Status));
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetByProjectAsync_FiltersByPriority()
+    {
+        using var db = CreateDb();
+        var service = new TaskService(db);
+        var projectId = Guid.NewGuid();
+        SeedTask(db, projectId, Guid.NewGuid(), priority: "Low");
+        SeedTask(db, projectId, Guid.NewGuid(), priority: "High");
+        SeedTask(db, projectId, Guid.NewGuid(), priority: "High");
+
+        var result = await service.GetByProjectAsync(projectId, page: 1, pageSize: 20, status: null, priority: "High");
+
+        Assert.Equal(2, result.Count());
+        Assert.All(result, t => Assert.Equal("High", t.Priority));
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetByProjectAsync_FiltersByStatusAndPriority()
+    {
+        using var db = CreateDb();
+        var service = new TaskService(db);
+        var projectId = Guid.NewGuid();
+        SeedTask(db, projectId, Guid.NewGuid(), status: "Todo", priority: "High");
+        SeedTask(db, projectId, Guid.NewGuid(), status: "Todo", priority: "Low");
+        SeedTask(db, projectId, Guid.NewGuid(), status: "Done", priority: "High");
+
+        var result = await service.GetByProjectAsync(projectId, page: 1, pageSize: 20, status: "Todo", priority: "High");
+
+        Assert.Single(result);
+        Assert.Equal("Todo", result.First().Status);
+        Assert.Equal("High", result.First().Priority);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetByProjectAsync_DoesNotReturnTasksFromOtherProjects()
+    {
+        using var db = CreateDb();
+        var service = new TaskService(db);
+        var projectId = Guid.NewGuid();
+        SeedTask(db, projectId, Guid.NewGuid());
+        SeedTask(db, Guid.NewGuid(), Guid.NewGuid()); // different project
+
+        var result = await service.GetByProjectAsync(projectId, page: 1, pageSize: 20, status: null, priority: null);
+
+        Assert.Single(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetByProjectAsync_PaginatesResults()
+    {
+        using var db = CreateDb();
+        var service = new TaskService(db);
+        var projectId = Guid.NewGuid();
+        for (var i = 0; i < 5; i++)
+            SeedTask(db, projectId, Guid.NewGuid());
+
+        var page1 = await service.GetByProjectAsync(projectId, page: 1, pageSize: 2, status: null, priority: null);
+        var page2 = await service.GetByProjectAsync(projectId, page: 2, pageSize: 2, status: null, priority: null);
+        var page3 = await service.GetByProjectAsync(projectId, page: 3, pageSize: 2, status: null, priority: null);
+
+        Assert.Equal(2, page1.Count());
+        Assert.Equal(2, page2.Count());
+        Assert.Single(page3);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetByProjectAsync_ReturnsEmpty_WhenPageBeyondResults()
+    {
+        using var db = CreateDb();
+        var service = new TaskService(db);
+        var projectId = Guid.NewGuid();
+        SeedTask(db, projectId, Guid.NewGuid());
+
+        var result = await service.GetByProjectAsync(projectId, page: 99, pageSize: 20, status: null, priority: null);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetByProjectAsync_IsStable_WhenCreatedAtTimestampsCollide()
+    {
+        var options = CreateOptions();
+        using var db = new AppDbContext(options);
+        var projectId = Guid.NewGuid();
+        var timestamp = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var idA = new Guid("aaaaaaaa-0000-0000-0000-000000000000");
+        var idB = new Guid("bbbbbbbb-0000-0000-0000-000000000000");
+        db.Tasks.AddRange(
+            new ProjectTask { Id = idA, ProjectId = projectId, Title = "A", Status = "Todo", Priority = "Low", CreatedAt = timestamp },
+            new ProjectTask { Id = idB, ProjectId = projectId, Title = "B", Status = "Todo", Priority = "Low", CreatedAt = timestamp });
+        db.SaveChanges();
+        var service = new TaskService(db);
+
+        var page1 = (await service.GetByProjectAsync(projectId, page: 1, pageSize: 1, status: null, priority: null)).Single();
+        var page2 = (await service.GetByProjectAsync(projectId, page: 2, pageSize: 1, status: null, priority: null)).Single();
+
+        Assert.NotEqual(page1.Id, page2.Id);
     }
 
     [Fact]

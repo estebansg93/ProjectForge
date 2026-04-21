@@ -11,14 +11,38 @@ namespace ProjectForge.Api.Controllers;
 [Produces("application/json")]
 public class TasksController(ITaskService taskService) : ControllerBase
 {
+    private static readonly HashSet<string> ValidStatuses = ["Todo", "InProgress", "Done"];
+    private static readonly HashSet<string> ValidPriorities = ["Low", "Medium", "High"];
+
     /// <summary>
-    /// Returns all tasks for a given project.
+    /// Returns a paginated, optionally filtered list of tasks for a given project.
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<TaskResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByProject(Guid projectId)
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetByProject(
+        Guid projectId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? status = null,
+        [FromQuery] string? priority = null)
     {
-        var tasks = await taskService.GetByProjectAsync(projectId);
+        if (page < 1)
+            return BadRequest(new { message = "Page must be greater than or equal to 1." });
+
+        if (pageSize < 1 || pageSize > 100)
+            return BadRequest(new { message = "Page size must be between 1 and 100." });
+
+        if ((long)(page - 1) * pageSize > int.MaxValue)
+            return BadRequest(new { message = "Page value is too large." });
+
+        if (status is not null && !ValidStatuses.Contains(status))
+            return BadRequest(new { message = $"Invalid status. Allowed values: {string.Join(", ", ValidStatuses)}." });
+
+        if (priority is not null && !ValidPriorities.Contains(priority))
+            return BadRequest(new { message = $"Invalid priority. Allowed values: {string.Join(", ", ValidPriorities)}." });
+
+        var tasks = await taskService.GetByProjectAsync(projectId, page, pageSize, status, priority);
         return Ok(tasks);
     }
 
