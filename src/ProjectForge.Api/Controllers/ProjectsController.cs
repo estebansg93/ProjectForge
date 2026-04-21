@@ -11,6 +11,8 @@ namespace ProjectForge.Api.Controllers;
 [Produces("application/json")]
 public class ProjectsController(IProjectService projectService) : ControllerBase
 {
+    private static readonly HashSet<string> ValidStatuses = ["Active", "Archived", "Completed"];
+
     /// <summary>
     /// Returns all projects. Accessible by any authenticated user.
     /// </summary>
@@ -69,6 +71,9 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Name))
             return BadRequest(new { message = "Project name is required." });
 
+        if (!ValidStatuses.Contains(request.Status))
+            return BadRequest(new { message = $"Invalid status. Allowed values: {string.Join(", ", ValidStatuses)}." });
+
         var project = await projectService.UpdateAsync(id, request);
         if (project is null)
             return NotFound(new { message = $"Project {id} not found." });
@@ -89,6 +94,9 @@ public class ProjectsController(IProjectService projectService) : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Status))
             return BadRequest(new { message = "Status is required." });
+
+        if (!ValidStatuses.Contains(request.Status))
+            return BadRequest(new { message = $"Invalid status. Allowed values: {string.Join(", ", ValidStatuses)}." });
 
         var project = await projectService.UpdateStatusAsync(id, request.Status);
         if (project is null)

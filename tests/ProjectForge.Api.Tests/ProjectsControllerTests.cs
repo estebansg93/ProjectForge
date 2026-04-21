@@ -37,6 +37,15 @@ public class ProjectsControllerTests
     }
 
     [Fact]
+    public async Task Update_ReturnsBadRequest_WhenStatusIsInvalid()
+    {
+        var result = await _controller.Update(Guid.NewGuid(), new UpdateProjectRequest("Name", null, "InvalidStatus"));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        _mockService.Verify(s => s.UpdateAsync(It.IsAny<Guid>(), It.IsAny<UpdateProjectRequest>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Update_ReturnsNotFound_WhenServiceReturnsNull()
     {
         var id = Guid.NewGuid();
@@ -97,6 +106,15 @@ public class ProjectsControllerTests
         var result = await _controller.PatchStatus(Guid.NewGuid(), new PatchProjectStatusRequest("   "));
 
         Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task PatchStatus_ReturnsBadRequest_WhenStatusIsInvalid()
+    {
+        var result = await _controller.PatchStatus(Guid.NewGuid(), new PatchProjectStatusRequest("NotAStatus"));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        _mockService.Verify(s => s.UpdateStatusAsync(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
