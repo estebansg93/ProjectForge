@@ -8,5 +8,5 @@ public record NoteResponse(
     string Content,
     DateTime CreatedAt);
 
-// TODO: Add UpdateNoteRequest when PUT /api/projects/{id}/notes/{noteId} is implemented.
+public record UpdateNoteRequest(string Content);
 // TODO: Add AuthorId/AuthorEmail to NoteResponse when user authorship is tracked.

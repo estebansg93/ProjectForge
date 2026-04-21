@@ -36,8 +36,26 @@ public class NotesController(INoteService noteService) : ControllerBase
         var note = await noteService.CreateAsync(projectId, request);
         return Created($"api/projects/{projectId}/notes/{note.Id}", note);
 
-        // TODO: Add PUT /api/projects/{projectId}/notes/{noteId}
         // TODO: Add DELETE /api/projects/{projectId}/notes/{noteId}
         // TODO: Add GET /api/projects/{projectId}/notes/{noteId} for single note retrieval.
+    }
+
+    /// <summary>
+    /// Updates the content of an existing note.
+    /// </summary>
+    [HttpPut("{noteId:guid}")]
+    [ProducesResponseType(typeof(NoteResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(Guid projectId, Guid noteId, [FromBody] UpdateNoteRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Content))
+            return BadRequest(new { message = "Note content is required." });
+
+        var note = await noteService.UpdateAsync(projectId, noteId, request);
+        if (note is null)
+            return NotFound(new { message = "Note not found." });
+
+        return Ok(note);
     }
 }

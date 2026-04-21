@@ -39,7 +39,17 @@ public class NoteService(AppDbContext db) : INoteService
         return ToResponse(note);
     }
 
-    // TODO: Implement UpdateAsync.
+    public async Task<NoteResponse?> UpdateAsync(Guid projectId, Guid noteId, UpdateNoteRequest request)
+    {
+        var note = await db.Notes.FirstOrDefaultAsync(n => n.Id == noteId && n.ProjectId == projectId);
+        if (note is null)
+            return null;
+
+        note.Content = request.Content;
+        await db.SaveChangesAsync();
+        return ToResponse(note);
+    }
+
     // TODO: Implement DeleteAsync — consider soft delete.
 
     private static NoteResponse ToResponse(Note n) =>
