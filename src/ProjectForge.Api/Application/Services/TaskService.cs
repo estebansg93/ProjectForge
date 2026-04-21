@@ -8,17 +8,20 @@ namespace ProjectForge.Api.Application.Services;
 
 public class TaskService(AppDbContext db) : ITaskService
 {
-    public async Task<IEnumerable<TaskResponse>> GetByProjectAsync(Guid projectId)
+    public async Task<IEnumerable<TaskResponse>> GetByProjectAsync(Guid projectId, int page, int pageSize, string? status, string? priority)
     {
         return await db.Tasks
             .AsNoTracking()
             .Where(t => t.ProjectId == projectId)
+            .Where(t => status == null || t.Status == status)
+            .Where(t => priority == null || t.Priority == priority)
             .OrderByDescending(t => t.CreatedAt)
+            .ThenByDescending(t => t.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(t => ToResponse(t))
             .ToListAsync();
 
-        // TODO: Add filtering by status and priority.
-        // TODO: Add pagination.
         // TODO: Include assignee info when user assignment is implemented.
     }
 

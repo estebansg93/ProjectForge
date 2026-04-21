@@ -18,6 +18,83 @@ public class TasksControllerTests
     }
 
     [Fact]
+    public async System.Threading.Tasks.Task GetByProject_ReturnsBadRequest_WhenPageIsZero()
+    {
+        var result = await _controller.GetByProject(Guid.NewGuid(), page: 0);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        _mockService.Verify(s => s.GetByProjectAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<string?>()), Times.Never);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetByProject_ReturnsBadRequest_WhenPageSizeIsZero()
+    {
+        var result = await _controller.GetByProject(Guid.NewGuid(), pageSize: 0);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetByProject_ReturnsBadRequest_WhenPageSizeExceedsMax()
+    {
+        var result = await _controller.GetByProject(Guid.NewGuid(), pageSize: 101);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetByProject_ReturnsBadRequest_WhenPageOffsetOverflows()
+    {
+        var result = await _controller.GetByProject(Guid.NewGuid(), page: int.MaxValue, pageSize: 100);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetByProject_ReturnsBadRequest_WhenStatusIsInvalid()
+    {
+        var result = await _controller.GetByProject(Guid.NewGuid(), status: "Invalid");
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        _mockService.Verify(s => s.GetByProjectAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<string?>()), Times.Never);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetByProject_ReturnsBadRequest_WhenPriorityIsInvalid()
+    {
+        var result = await _controller.GetByProject(Guid.NewGuid(), priority: "Urgent");
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetByProject_ReturnsOk_WithDefaults()
+    {
+        var projectId = Guid.NewGuid();
+        _mockService
+            .Setup(s => s.GetByProjectAsync(projectId, 1, 20, null, null))
+            .ReturnsAsync([]);
+
+        var result = await _controller.GetByProject(projectId);
+
+        Assert.IsType<OkObjectResult>(result);
+        _mockService.Verify(s => s.GetByProjectAsync(projectId, 1, 20, null, null), Times.Once);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetByProject_PassesAllParametersToService()
+    {
+        var projectId = Guid.NewGuid();
+        _mockService
+            .Setup(s => s.GetByProjectAsync(projectId, 2, 10, "Todo", "High"))
+            .ReturnsAsync([]);
+
+        await _controller.GetByProject(projectId, page: 2, pageSize: 10, status: "Todo", priority: "High");
+
+        _mockService.Verify(s => s.GetByProjectAsync(projectId, 2, 10, "Todo", "High"), Times.Once);
+    }
+
+    [Fact]
     public async System.Threading.Tasks.Task PatchStatus_ReturnsBadRequest_WhenStatusIsEmpty()
     {
         var result = await _controller.PatchStatus(
