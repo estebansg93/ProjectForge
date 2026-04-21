@@ -413,6 +413,79 @@ public class TaskServiceTests
         Assert.Null(result.Description);
     }
 
+    // --- CreateAsync ---
+
+    [Fact]
+    public async System.Threading.Tasks.Task CreateAsync_ReturnsNull_WhenProjectDoesNotExist()
+    {
+        using var db = CreateDb();
+        var service = new TaskService(db);
+
+        var result = await service.CreateAsync(Guid.NewGuid(), new CreateTaskRequest("Title", null, "Low"));
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task CreateAsync_ReturnsTask_WhenProjectExists()
+    {
+        using var db = CreateDb();
+        var project = new Project { Id = Guid.NewGuid(), Name = "P", Status = "Active", CreatedAt = DateTime.UtcNow };
+        db.Projects.Add(project);
+        db.SaveChanges();
+        var service = new TaskService(db);
+
+        var result = await service.CreateAsync(project.Id, new CreateTaskRequest("My Task", "desc", "High"));
+
+        Assert.NotNull(result);
+        Assert.Equal("My Task", result.Title);
+        Assert.Equal("desc", result.Description);
+        Assert.Equal("High", result.Priority);
+        Assert.Equal("Todo", result.Status);
+        Assert.Equal(project.Id, result.ProjectId);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task CreateAsync_PersistsTask_ToDatabase()
+    {
+        var options = CreateOptions();
+        var projectId = Guid.NewGuid();
+
+        using (var db = new AppDbContext(options))
+        {
+            db.Projects.Add(new Project { Id = projectId, Name = "P", Status = "Active", CreatedAt = DateTime.UtcNow });
+            db.SaveChanges();
+            var service = new TaskService(db);
+            await service.CreateAsync(projectId, new CreateTaskRequest("Persisted", null, "Low"));
+        }
+
+        using (var db = new AppDbContext(options))
+        {
+            var stored = await db.Tasks.FirstOrDefaultAsync(t => t.ProjectId == projectId);
+            Assert.NotNull(stored);
+            Assert.Equal("Persisted", stored.Title);
+            Assert.Equal("Todo", stored.Status);
+        }
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task CreateAsync_DoesNotPersist_WhenProjectDoesNotExist()
+    {
+        var options = CreateOptions();
+        var projectId = Guid.NewGuid();
+
+        using (var db = new AppDbContext(options))
+        {
+            var service = new TaskService(db);
+            await service.CreateAsync(projectId, new CreateTaskRequest("Ghost", null, "Low"));
+        }
+
+        using (var db = new AppDbContext(options))
+        {
+            Assert.Empty(db.Tasks);
+        }
+    }
+
     [Fact]
     public async System.Threading.Tasks.Task DeleteAsync_ReturnsFalse_WhenTaskDoesNotExist()
     {

@@ -34,10 +34,11 @@ public class TaskService(AppDbContext db) : ITaskService
         return task is null ? null : ToResponse(task);
     }
 
-    public async Task<TaskResponse> CreateAsync(Guid projectId, CreateTaskRequest request)
+    public async Task<TaskResponse?> CreateAsync(Guid projectId, CreateTaskRequest request)
     {
-        // TODO: Validate that projectId exists — return 404 if project not found.
-        //       This is intentionally left for the controller or a domain validation layer.
+        var projectExists = await db.Projects.AnyAsync(p => p.Id == projectId);
+        if (!projectExists)
+            return null;
 
         var task = new ProjectTask
         {

@@ -300,6 +300,75 @@ public class TasksControllerTests
     }
 
     [Fact]
+    public async System.Threading.Tasks.Task Create_ReturnsBadRequest_WhenTitleIsEmpty()
+    {
+        var result = await _controller.Create(Guid.NewGuid(), new CreateTaskRequest("", null));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        _mockService.Verify(s => s.CreateAsync(It.IsAny<Guid>(), It.IsAny<CreateTaskRequest>()), Times.Never);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task Create_ReturnsBadRequest_WhenTitleIsWhitespace()
+    {
+        var result = await _controller.Create(Guid.NewGuid(), new CreateTaskRequest("   ", null));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task Create_ReturnsNotFound_WhenServiceReturnsNull()
+    {
+        var projectId = Guid.NewGuid();
+        var request = new CreateTaskRequest("Task", null);
+
+        _mockService
+            .Setup(s => s.CreateAsync(projectId, request))
+            .ReturnsAsync((TaskResponse?)null);
+
+        var result = await _controller.Create(projectId, request);
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task Create_ReturnsCreated_WhenServiceReturnsTask()
+    {
+        var projectId = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
+        var request = new CreateTaskRequest("New Task", "desc", "High");
+        var response = new TaskResponse(taskId, projectId, "New Task", "desc", "Todo", "High", DateTime.UtcNow);
+
+        _mockService
+            .Setup(s => s.CreateAsync(projectId, request))
+            .ReturnsAsync(response);
+
+        var result = await _controller.Create(projectId, request);
+
+        var created = Assert.IsType<CreatedResult>(result);
+        var returned = Assert.IsType<TaskResponse>(created.Value);
+        Assert.Equal(taskId, returned.Id);
+        Assert.Equal("New Task", returned.Title);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task Create_CallsService_WithCorrectArguments()
+    {
+        var projectId = Guid.NewGuid();
+        var request = new CreateTaskRequest("Task", null, "Low");
+        var taskId = Guid.NewGuid();
+        var response = new TaskResponse(taskId, projectId, "Task", null, "Todo", "Low", DateTime.UtcNow);
+
+        _mockService
+            .Setup(s => s.CreateAsync(projectId, request))
+            .ReturnsAsync(response);
+
+        await _controller.Create(projectId, request);
+
+        _mockService.Verify(s => s.CreateAsync(projectId, request), Times.Once);
+    }
+
+    [Fact]
     public async System.Threading.Tasks.Task Delete_ReturnsNotFound_WhenServiceReturnsFalse()
     {
         var projectId = Guid.NewGuid();
