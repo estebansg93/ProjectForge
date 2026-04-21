@@ -5,6 +5,7 @@ namespace ProjectForge.Api.Application.Interfaces;
 public interface ITaskService
 {
     Task<IEnumerable<TaskResponse>> GetByProjectAsync(Guid projectId);
+    Task<TaskResponse?> GetByIdAsync(Guid projectId, Guid taskId);
     Task<TaskResponse> CreateAsync(Guid projectId, CreateTaskRequest request);
 
     Task<TaskResponse?> UpdateAsync(Guid projectId, Guid taskId, UpdateTaskRequest request);

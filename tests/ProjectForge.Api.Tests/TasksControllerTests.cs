@@ -18,6 +18,56 @@ public class TasksControllerTests
     }
 
     [Fact]
+    public async System.Threading.Tasks.Task GetById_ReturnsNotFound_WhenServiceReturnsNull()
+    {
+        var projectId = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
+
+        _mockService
+            .Setup(s => s.GetByIdAsync(projectId, taskId))
+            .ReturnsAsync((TaskResponse?)null);
+
+        var result = await _controller.GetById(projectId, taskId);
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetById_ReturnsOk_WithTask()
+    {
+        var projectId = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
+        var response = new TaskResponse(taskId, projectId, "My Task", null, "Todo", "Low", DateTime.UtcNow);
+
+        _mockService
+            .Setup(s => s.GetByIdAsync(projectId, taskId))
+            .ReturnsAsync(response);
+
+        var result = await _controller.GetById(projectId, taskId);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var returned = Assert.IsType<TaskResponse>(ok.Value);
+        Assert.Equal(taskId, returned.Id);
+        Assert.Equal("My Task", returned.Title);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetById_CallsService_WithCorrectArguments()
+    {
+        var projectId = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
+        var response = new TaskResponse(taskId, projectId, "Title", null, "Todo", "Low", DateTime.UtcNow);
+
+        _mockService
+            .Setup(s => s.GetByIdAsync(projectId, taskId))
+            .ReturnsAsync(response);
+
+        await _controller.GetById(projectId, taskId);
+
+        _mockService.Verify(s => s.GetByIdAsync(projectId, taskId), Times.Once);
+    }
+
+    [Fact]
     public async System.Threading.Tasks.Task Update_ReturnsBadRequest_WhenTitleIsEmpty()
     {
         var request = new UpdateTaskRequest(

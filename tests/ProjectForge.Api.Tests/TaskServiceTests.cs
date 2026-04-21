@@ -33,6 +33,51 @@ public class TaskServiceTests
     }
 
     [Fact]
+    public async System.Threading.Tasks.Task GetByIdAsync_ReturnsNull_WhenTaskDoesNotExist()
+    {
+        using var db = CreateDb();
+        var service = new TaskService(db);
+
+        var result = await service.GetByIdAsync(Guid.NewGuid(), Guid.NewGuid());
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetByIdAsync_ReturnsNull_WhenTaskBelongsToDifferentProject()
+    {
+        using var db = CreateDb();
+        var service = new TaskService(db);
+
+        var taskId = Guid.NewGuid();
+        SeedTask(db, projectId: Guid.NewGuid(), taskId: taskId);
+
+        var result = await service.GetByIdAsync(projectId: Guid.NewGuid(), taskId: taskId);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task GetByIdAsync_ReturnsTask_WhenFound()
+    {
+        using var db = CreateDb();
+        var service = new TaskService(db);
+
+        var projectId = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
+        var seeded = SeedTask(db, projectId, taskId);
+
+        var result = await service.GetByIdAsync(projectId, taskId);
+
+        Assert.NotNull(result);
+        Assert.Equal(taskId, result.Id);
+        Assert.Equal(projectId, result.ProjectId);
+        Assert.Equal(seeded.Title, result.Title);
+        Assert.Equal(seeded.Status, result.Status);
+        Assert.Equal(seeded.Priority, result.Priority);
+    }
+
+    [Fact]
     public async System.Threading.Tasks.Task UpdateAsync_ReturnsNull_WhenTaskDoesNotExist()
     {
         using var db = CreateDb();

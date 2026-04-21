@@ -23,6 +23,21 @@ public class TasksController(ITaskService taskService) : ControllerBase
     }
 
     /// <summary>
+    /// Returns a single task by ID within a project.
+    /// </summary>
+    [HttpGet("{taskId:guid}")]
+    [ProducesResponseType(typeof(TaskResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(Guid projectId, Guid taskId)
+    {
+        var task = await taskService.GetByIdAsync(projectId, taskId);
+        if (task is null)
+            return NotFound(new { message = "Task not found." });
+
+        return Ok(task);
+    }
+
+    /// <summary>
     /// Creates a new task under a project. Accessible by any authenticated user.
     /// </summary>
     [HttpPost]
@@ -37,7 +52,6 @@ public class TasksController(ITaskService taskService) : ControllerBase
         return Created($"api/projects/{projectId}/tasks/{task.Id}", task);
 
         // TODO: Add PATCH /api/projects/{projectId}/tasks/{taskId}/status for status transitions.
-        // TODO: Add GET /api/projects/{projectId}/tasks/{taskId} for single task retrieval.
     }
 
     /// <summary>
