@@ -18,6 +18,56 @@ public class NotesControllerTests
     }
 
     [Fact]
+    public async Task GetById_ReturnsNotFound_WhenServiceReturnsNull()
+    {
+        var projectId = Guid.NewGuid();
+        var noteId = Guid.NewGuid();
+
+        _mockService
+            .Setup(s => s.GetByIdAsync(projectId, noteId))
+            .ReturnsAsync((NoteResponse?)null);
+
+        var result = await _controller.GetById(projectId, noteId);
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task GetById_ReturnsOk_WithNote()
+    {
+        var projectId = Guid.NewGuid();
+        var noteId = Guid.NewGuid();
+        var response = new NoteResponse(noteId, projectId, "Some content", DateTime.UtcNow);
+
+        _mockService
+            .Setup(s => s.GetByIdAsync(projectId, noteId))
+            .ReturnsAsync(response);
+
+        var result = await _controller.GetById(projectId, noteId);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var returned = Assert.IsType<NoteResponse>(ok.Value);
+        Assert.Equal(noteId, returned.Id);
+        Assert.Equal("Some content", returned.Content);
+    }
+
+    [Fact]
+    public async Task GetById_CallsService_WithCorrectArguments()
+    {
+        var projectId = Guid.NewGuid();
+        var noteId = Guid.NewGuid();
+        var response = new NoteResponse(noteId, projectId, "Content", DateTime.UtcNow);
+
+        _mockService
+            .Setup(s => s.GetByIdAsync(projectId, noteId))
+            .ReturnsAsync(response);
+
+        await _controller.GetById(projectId, noteId);
+
+        _mockService.Verify(s => s.GetByIdAsync(projectId, noteId), Times.Once);
+    }
+
+    [Fact]
     public async Task Update_ReturnsBadRequest_WhenContentIsEmpty()
     {
         var result = await _controller.Update(Guid.NewGuid(), Guid.NewGuid(), new UpdateNoteRequest(""));
@@ -84,5 +134,50 @@ public class NotesControllerTests
         await _controller.Update(projectId, noteId, request);
 
         _mockService.Verify(s => s.UpdateAsync(projectId, noteId, request), Times.Once);
+    }
+
+    [Fact]
+    public async Task Delete_ReturnsNotFound_WhenServiceReturnsFalse()
+    {
+        var projectId = Guid.NewGuid();
+        var noteId = Guid.NewGuid();
+
+        _mockService
+            .Setup(s => s.DeleteAsync(projectId, noteId))
+            .ReturnsAsync(false);
+
+        var result = await _controller.Delete(projectId, noteId);
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Delete_ReturnsNoContent_WhenServiceReturnsTrue()
+    {
+        var projectId = Guid.NewGuid();
+        var noteId = Guid.NewGuid();
+
+        _mockService
+            .Setup(s => s.DeleteAsync(projectId, noteId))
+            .ReturnsAsync(true);
+
+        var result = await _controller.Delete(projectId, noteId);
+
+        Assert.IsType<NoContentResult>(result);
+    }
+
+    [Fact]
+    public async Task Delete_CallsService_WithCorrectArguments()
+    {
+        var projectId = Guid.NewGuid();
+        var noteId = Guid.NewGuid();
+
+        _mockService
+            .Setup(s => s.DeleteAsync(projectId, noteId))
+            .ReturnsAsync(true);
+
+        await _controller.Delete(projectId, noteId);
+
+        _mockService.Verify(s => s.DeleteAsync(projectId, noteId), Times.Once);
     }
 }

@@ -23,6 +23,21 @@ public class NotesController(INoteService noteService) : ControllerBase
     }
 
     /// <summary>
+    /// Returns a single note by ID within a project.
+    /// </summary>
+    [HttpGet("{noteId:guid}")]
+    [ProducesResponseType(typeof(NoteResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(Guid projectId, Guid noteId)
+    {
+        var note = await noteService.GetByIdAsync(projectId, noteId);
+        if (note is null)
+            return NotFound(new { message = "Note not found." });
+
+        return Ok(note);
+    }
+
+    /// <summary>
     /// Creates a new note under a project. Accessible by any authenticated user.
     /// </summary>
     [HttpPost]
@@ -36,8 +51,6 @@ public class NotesController(INoteService noteService) : ControllerBase
         var note = await noteService.CreateAsync(projectId, request);
         return Created($"api/projects/{projectId}/notes/{note.Id}", note);
 
-        // TODO: Add DELETE /api/projects/{projectId}/notes/{noteId}
-        // TODO: Add GET /api/projects/{projectId}/notes/{noteId} for single note retrieval.
     }
 
     /// <summary>
@@ -57,5 +70,20 @@ public class NotesController(INoteService noteService) : ControllerBase
             return NotFound(new { message = "Note not found." });
 
         return Ok(note);
+    }
+
+    /// <summary>
+    /// Deletes a note by ID within a project.
+    /// </summary>
+    [HttpDelete("{noteId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid projectId, Guid noteId)
+    {
+        var deleted = await noteService.DeleteAsync(projectId, noteId);
+        if (!deleted)
+            return NotFound(new { message = "Note not found." });
+
+        return NoContent();
     }
 }

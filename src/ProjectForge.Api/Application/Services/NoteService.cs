@@ -39,6 +39,15 @@ public class NoteService(AppDbContext db) : INoteService
         return ToResponse(note);
     }
 
+    public async Task<NoteResponse?> GetByIdAsync(Guid projectId, Guid noteId)
+    {
+        var note = await db.Notes
+            .AsNoTracking()
+            .FirstOrDefaultAsync(n => n.Id == noteId && n.ProjectId == projectId);
+
+        return note is null ? null : ToResponse(note);
+    }
+
     public async Task<NoteResponse?> UpdateAsync(Guid projectId, Guid noteId, UpdateNoteRequest request)
     {
         var note = await db.Notes.FirstOrDefaultAsync(n => n.Id == noteId && n.ProjectId == projectId);
@@ -50,7 +59,16 @@ public class NoteService(AppDbContext db) : INoteService
         return ToResponse(note);
     }
 
-    // TODO: Implement DeleteAsync — consider soft delete.
+    public async Task<bool> DeleteAsync(Guid projectId, Guid noteId)
+    {
+        var note = await db.Notes.FirstOrDefaultAsync(n => n.Id == noteId && n.ProjectId == projectId);
+        if (note is null)
+            return false;
+
+        db.Notes.Remove(note);
+        await db.SaveChangesAsync();
+        return true;
+    }
 
     private static NoteResponse ToResponse(Note n) =>
         new(n.Id, n.ProjectId, n.Content, n.CreatedAt);
