@@ -178,6 +178,84 @@ public class ProjectServiceTests
         Assert.NotEqual(page1.Id, page2.Id);
     }
 
+    // --- GetByIdAsync ---
+
+    [Fact]
+    public async Task GetByIdAsync_ReturnsNull_WhenProjectDoesNotExist()
+    {
+        using var db = CreateDb();
+        var service = new ProjectService(db);
+
+        var result = await service.GetByIdAsync(Guid.NewGuid());
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ReturnsProject_WhenFound()
+    {
+        using var db = CreateDb();
+        var service = new ProjectService(db);
+        var id = Guid.NewGuid();
+        var seeded = SeedProject(db, id, name: "My Project", status: "Active");
+
+        var result = await service.GetByIdAsync(id);
+
+        Assert.NotNull(result);
+        Assert.Equal(id, result.Id);
+        Assert.Equal("My Project", result.Name);
+        Assert.Equal("Active", result.Status);
+        Assert.Equal(seeded.Description, result.Description);
+        Assert.Equal(seeded.CreatedAt, result.CreatedAt);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_IncludesCorrectCounts()
+    {
+        using var db = CreateDb();
+        var service = new ProjectService(db);
+        var id = Guid.NewGuid();
+        SeedProject(db, id, taskCount: 4, noteCount: 2, incidentCount: 3);
+
+        var result = await service.GetByIdAsync(id);
+
+        Assert.NotNull(result);
+        Assert.Equal(4, result.TaskCount);
+        Assert.Equal(2, result.NoteCount);
+        Assert.Equal(3, result.IncidentCount);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ReturnsZeroCounts_WhenNoRelatedData()
+    {
+        using var db = CreateDb();
+        var service = new ProjectService(db);
+        var id = Guid.NewGuid();
+        SeedProject(db, id);
+
+        var result = await service.GetByIdAsync(id);
+
+        Assert.NotNull(result);
+        Assert.Equal(0, result.TaskCount);
+        Assert.Equal(0, result.NoteCount);
+        Assert.Equal(0, result.IncidentCount);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_DoesNotReturnCountsFromOtherProjects()
+    {
+        using var db = CreateDb();
+        var service = new ProjectService(db);
+        var targetId = Guid.NewGuid();
+        SeedProject(db, targetId, taskCount: 1);
+        SeedProject(db, Guid.NewGuid(), taskCount: 5); // noise
+
+        var result = await service.GetByIdAsync(targetId);
+
+        Assert.NotNull(result);
+        Assert.Equal(1, result.TaskCount);
+    }
+
     // --- UpdateAsync ---
 
     [Fact]

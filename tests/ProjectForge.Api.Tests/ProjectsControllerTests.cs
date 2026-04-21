@@ -99,6 +99,51 @@ public class ProjectsControllerTests
         Assert.IsType<OkObjectResult>(result);
     }
 
+    // --- GetById ---
+
+    [Fact]
+    public async Task GetById_ReturnsNotFound_WhenServiceReturnsNull()
+    {
+        var id = Guid.NewGuid();
+
+        _mockService.Setup(s => s.GetByIdAsync(id)).ReturnsAsync((ProjectDetailResponse?)null);
+
+        var result = await _controller.GetById(id);
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task GetById_ReturnsOk_WithDetailResponse()
+    {
+        var id = Guid.NewGuid();
+        var response = new ProjectDetailResponse(id, "Project X", null, "Active", DateTime.UtcNow, 3, 1, 2);
+
+        _mockService.Setup(s => s.GetByIdAsync(id)).ReturnsAsync(response);
+
+        var result = await _controller.GetById(id);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var returned = Assert.IsType<ProjectDetailResponse>(ok.Value);
+        Assert.Equal(id, returned.Id);
+        Assert.Equal(3, returned.TaskCount);
+        Assert.Equal(1, returned.NoteCount);
+        Assert.Equal(2, returned.IncidentCount);
+    }
+
+    [Fact]
+    public async Task GetById_CallsService_WithCorrectId()
+    {
+        var id = Guid.NewGuid();
+        var response = new ProjectDetailResponse(id, "P", null, "Active", DateTime.UtcNow, 0, 0, 0);
+
+        _mockService.Setup(s => s.GetByIdAsync(id)).ReturnsAsync(response);
+
+        await _controller.GetById(id);
+
+        _mockService.Verify(s => s.GetByIdAsync(id), Times.Once);
+    }
+
     // --- Update ---
 
     [Fact]

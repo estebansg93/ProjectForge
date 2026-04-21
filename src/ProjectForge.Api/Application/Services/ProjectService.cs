@@ -23,15 +23,15 @@ public class ProjectService(AppDbContext db) : IProjectService
             .ToListAsync();
     }
 
-    public async Task<ProjectResponse?> GetByIdAsync(Guid id)
+    public async Task<ProjectDetailResponse?> GetByIdAsync(Guid id)
     {
-        var project = await db.Projects
+        return await db.Projects
             .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.Id == id);
-
-        return project is null ? null : ToResponse(project);
-
-        // TODO: Return a richer ProjectDetailResponse with related resource summaries.
+            .Where(p => p.Id == id)
+            .Select(p => new ProjectDetailResponse(
+                p.Id, p.Name, p.Description, p.Status, p.CreatedAt,
+                p.Tasks.Count, p.Notes.Count, p.Incidents.Count))
+            .FirstOrDefaultAsync();
     }
 
     public async Task<ProjectResponse> CreateAsync(CreateProjectRequest request)
