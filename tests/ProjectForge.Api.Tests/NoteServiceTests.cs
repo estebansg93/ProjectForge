@@ -71,4 +71,65 @@ public class NoteServiceTests
         Assert.Equal(seeded.Content, result.Content);
         Assert.Equal(seeded.CreatedAt, result.CreatedAt);
     }
+
+    [Fact]
+    public async Task DeleteAsync_ReturnsFalse_WhenNoteDoesNotExist()
+    {
+        using var db = CreateDb();
+        var service = new NoteService(db);
+
+        var result = await service.DeleteAsync(Guid.NewGuid(), Guid.NewGuid());
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ReturnsFalse_WhenNoteBelongsToDifferentProject()
+    {
+        using var db = CreateDb();
+        var service = new NoteService(db);
+
+        var noteId = Guid.NewGuid();
+        SeedNote(db, projectId: Guid.NewGuid(), noteId: noteId);
+
+        var result = await service.DeleteAsync(projectId: Guid.NewGuid(), noteId: noteId);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ReturnsTrue_WhenNoteExists()
+    {
+        using var db = CreateDb();
+        var service = new NoteService(db);
+
+        var projectId = Guid.NewGuid();
+        var noteId = Guid.NewGuid();
+        SeedNote(db, projectId, noteId);
+
+        var result = await service.DeleteAsync(projectId, noteId);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_RemovesNote_FromDatabase()
+    {
+        var options = CreateOptions();
+        var projectId = Guid.NewGuid();
+        var noteId = Guid.NewGuid();
+
+        using (var db = new AppDbContext(options))
+        {
+            SeedNote(db, projectId, noteId);
+            var service = new NoteService(db);
+            await service.DeleteAsync(projectId, noteId);
+        }
+
+        using (var db = new AppDbContext(options))
+        {
+            var stored = await db.Notes.FindAsync(noteId);
+            Assert.Null(stored);
+        }
+    }
 }
