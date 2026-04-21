@@ -1,0 +1,179 @@
+using Microsoft.AspNetCore.Mvc;
+using Moq;
+using ProjectForge.Api.Application.DTOs.Projects;
+using ProjectForge.Api.Application.Interfaces;
+using ProjectForge.Api.Controllers;
+
+namespace ProjectForge.Api.Tests;
+
+public class ProjectsControllerTests
+{
+    private readonly Mock<IProjectService> _mockService;
+    private readonly ProjectsController _controller;
+
+    public ProjectsControllerTests()
+    {
+        _mockService = new Mock<IProjectService>();
+        _controller = new ProjectsController(_mockService.Object);
+    }
+
+    // --- Update ---
+
+    [Fact]
+    public async Task Update_ReturnsBadRequest_WhenNameIsEmpty()
+    {
+        var result = await _controller.Update(Guid.NewGuid(), new UpdateProjectRequest("", null, "Active"));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        _mockService.Verify(s => s.UpdateAsync(It.IsAny<Guid>(), It.IsAny<UpdateProjectRequest>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Update_ReturnsBadRequest_WhenNameIsWhitespace()
+    {
+        var result = await _controller.Update(Guid.NewGuid(), new UpdateProjectRequest("   ", null, "Active"));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Update_ReturnsNotFound_WhenServiceReturnsNull()
+    {
+        var id = Guid.NewGuid();
+        var request = new UpdateProjectRequest("Name", null, "Active");
+
+        _mockService.Setup(s => s.UpdateAsync(id, request)).ReturnsAsync((ProjectResponse?)null);
+
+        var result = await _controller.Update(id, request);
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Update_ReturnsOk_WithUpdatedProject()
+    {
+        var id = Guid.NewGuid();
+        var request = new UpdateProjectRequest("Updated", "Desc", "Completed");
+        var response = new ProjectResponse(id, "Updated", "Desc", "Completed", DateTime.UtcNow);
+
+        _mockService.Setup(s => s.UpdateAsync(id, request)).ReturnsAsync(response);
+
+        var result = await _controller.Update(id, request);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var returned = Assert.IsType<ProjectResponse>(ok.Value);
+        Assert.Equal("Updated", returned.Name);
+        Assert.Equal("Completed", returned.Status);
+    }
+
+    [Fact]
+    public async Task Update_CallsService_WithCorrectArguments()
+    {
+        var id = Guid.NewGuid();
+        var request = new UpdateProjectRequest("Name", null, "Active");
+        var response = new ProjectResponse(id, "Name", null, "Active", DateTime.UtcNow);
+
+        _mockService.Setup(s => s.UpdateAsync(id, request)).ReturnsAsync(response);
+
+        await _controller.Update(id, request);
+
+        _mockService.Verify(s => s.UpdateAsync(id, request), Times.Once);
+    }
+
+    // --- PatchStatus ---
+
+    [Fact]
+    public async Task PatchStatus_ReturnsBadRequest_WhenStatusIsEmpty()
+    {
+        var result = await _controller.PatchStatus(Guid.NewGuid(), new PatchProjectStatusRequest(""));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        _mockService.Verify(s => s.UpdateStatusAsync(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task PatchStatus_ReturnsBadRequest_WhenStatusIsWhitespace()
+    {
+        var result = await _controller.PatchStatus(Guid.NewGuid(), new PatchProjectStatusRequest("   "));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task PatchStatus_ReturnsNotFound_WhenServiceReturnsNull()
+    {
+        var id = Guid.NewGuid();
+
+        _mockService.Setup(s => s.UpdateStatusAsync(id, "Archived")).ReturnsAsync((ProjectResponse?)null);
+
+        var result = await _controller.PatchStatus(id, new PatchProjectStatusRequest("Archived"));
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task PatchStatus_ReturnsOk_WithUpdatedProject()
+    {
+        var id = Guid.NewGuid();
+        var response = new ProjectResponse(id, "Project", null, "Archived", DateTime.UtcNow);
+
+        _mockService.Setup(s => s.UpdateStatusAsync(id, "Archived")).ReturnsAsync(response);
+
+        var result = await _controller.PatchStatus(id, new PatchProjectStatusRequest("Archived"));
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var returned = Assert.IsType<ProjectResponse>(ok.Value);
+        Assert.Equal("Archived", returned.Status);
+    }
+
+    [Fact]
+    public async Task PatchStatus_CallsService_WithCorrectArguments()
+    {
+        var id = Guid.NewGuid();
+        var response = new ProjectResponse(id, "Project", null, "Completed", DateTime.UtcNow);
+
+        _mockService.Setup(s => s.UpdateStatusAsync(id, "Completed")).ReturnsAsync(response);
+
+        await _controller.PatchStatus(id, new PatchProjectStatusRequest("Completed"));
+
+        _mockService.Verify(s => s.UpdateStatusAsync(id, "Completed"), Times.Once);
+    }
+
+    // --- Delete ---
+
+    [Fact]
+    public async Task Delete_ReturnsNotFound_WhenServiceReturnsFalse()
+    {
+        var id = Guid.NewGuid();
+
+        _mockService.Setup(s => s.DeleteAsync(id)).ReturnsAsync(false);
+
+        var result = await _controller.Delete(id);
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Delete_ReturnsNoContent_WhenServiceReturnsTrue()
+    {
+        var id = Guid.NewGuid();
+
+        _mockService.Setup(s => s.DeleteAsync(id)).ReturnsAsync(true);
+
+        var result = await _controller.Delete(id);
+
+        Assert.IsType<NoContentResult>(result);
+    }
+
+    [Fact]
+    public async Task Delete_CallsService_WithCorrectArguments()
+    {
+        var id = Guid.NewGuid();
+
+        _mockService.Setup(s => s.DeleteAsync(id)).ReturnsAsync(true);
+
+        await _controller.Delete(id);
+
+        _mockService.Verify(s => s.DeleteAsync(id), Times.Once);
+    }
+}

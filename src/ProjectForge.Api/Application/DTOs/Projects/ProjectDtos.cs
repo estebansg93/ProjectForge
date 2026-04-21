@@ -9,5 +9,6 @@ public record ProjectResponse(
     string Status,
     DateTime CreatedAt);
 
-// TODO: Add UpdateProjectRequest when PUT /api/projects/{id} is implemented.
-// TODO: Add ProjectDetailResponse with task/note/incident counts.
+public record UpdateProjectRequest(string Name, string? Description, string Status);
+
+public record PatchProjectStatusRequest(string Status);
