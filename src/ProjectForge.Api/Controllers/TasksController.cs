@@ -92,6 +92,9 @@ public class TasksController(ITaskService taskService) : ControllerBase
             return BadRequest(new { message = "Task title is required." });
 
         var task = await taskService.CreateAsync(projectId, request);
+        if (task is null)
+            return NotFound(new { message = $"Project {projectId} not found." });
+
         return Created($"api/projects/{projectId}/tasks/{task.Id}", task);
     }
 
