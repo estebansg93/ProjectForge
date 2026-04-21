@@ -22,6 +22,15 @@ public class TaskService(AppDbContext db) : ITaskService
         // TODO: Include assignee info when user assignment is implemented.
     }
 
+    public async Task<TaskResponse?> GetByIdAsync(Guid projectId, Guid taskId)
+    {
+        var task = await db.Tasks
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == taskId && t.ProjectId == projectId);
+
+        return task is null ? null : ToResponse(task);
+    }
+
     public async Task<TaskResponse> CreateAsync(Guid projectId, CreateTaskRequest request)
     {
         // TODO: Validate that projectId exists — return 404 if project not found.
