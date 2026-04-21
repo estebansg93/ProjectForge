@@ -153,4 +153,65 @@ public class TaskServiceTests
         Assert.NotNull(result);
         Assert.Null(result.Description);
     }
+
+    [Fact]
+    public async System.Threading.Tasks.Task DeleteAsync_ReturnsFalse_WhenTaskDoesNotExist()
+    {
+        using var db = CreateDb();
+        var service = new TaskService(db);
+
+        var result = await service.DeleteAsync(Guid.NewGuid(), Guid.NewGuid());
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task DeleteAsync_ReturnsFalse_WhenTaskBelongsToDifferentProject()
+    {
+        using var db = CreateDb();
+        var service = new TaskService(db);
+
+        var taskId = Guid.NewGuid();
+        SeedTask(db, projectId: Guid.NewGuid(), taskId: taskId);
+
+        var result = await service.DeleteAsync(projectId: Guid.NewGuid(), taskId: taskId);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task DeleteAsync_ReturnsTrue_WhenTaskExists()
+    {
+        using var db = CreateDb();
+        var service = new TaskService(db);
+
+        var projectId = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
+        SeedTask(db, projectId, taskId);
+
+        var result = await service.DeleteAsync(projectId, taskId);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task DeleteAsync_RemovesTask_FromDatabase()
+    {
+        var options = CreateOptions();
+        var projectId = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
+
+        using (var db = new AppDbContext(options))
+        {
+            SeedTask(db, projectId, taskId);
+            var service = new TaskService(db);
+            await service.DeleteAsync(projectId, taskId);
+        }
+
+        using (var db = new AppDbContext(options))
+        {
+            var stored = await db.Tasks.FindAsync(taskId);
+            Assert.Null(stored);
+        }
+    }
 }
