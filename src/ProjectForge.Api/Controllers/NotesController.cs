@@ -37,7 +37,21 @@ public class NotesController(INoteService noteService) : ControllerBase
         return Created($"api/projects/{projectId}/notes/{note.Id}", note);
 
         // TODO: Add PUT /api/projects/{projectId}/notes/{noteId}
-        // TODO: Add DELETE /api/projects/{projectId}/notes/{noteId}
         // TODO: Add GET /api/projects/{projectId}/notes/{noteId} for single note retrieval.
+    }
+
+    /// <summary>
+    /// Deletes a note by ID within a project.
+    /// </summary>
+    [HttpDelete("{noteId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid projectId, Guid noteId)
+    {
+        var deleted = await noteService.DeleteAsync(projectId, noteId);
+        if (!deleted)
+            return NotFound(new { message = "Note not found." });
+
+        return NoContent();
     }
 }
