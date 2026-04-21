@@ -20,4 +20,6 @@ public record UpdateTaskRequest(
     string Status,
     string Priority);
 
+public record PatchTaskStatusRequest(string Status);
+
 // TODO: Add AssigneeId to CreateTaskRequest when user assignment is supported.

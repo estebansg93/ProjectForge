@@ -18,6 +18,74 @@ public class TasksControllerTests
     }
 
     [Fact]
+    public async System.Threading.Tasks.Task PatchStatus_ReturnsBadRequest_WhenStatusIsEmpty()
+    {
+        var result = await _controller.PatchStatus(
+            Guid.NewGuid(), Guid.NewGuid(), new PatchTaskStatusRequest(""));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        _mockService.Verify(s => s.UpdateStatusAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task PatchStatus_ReturnsBadRequest_WhenStatusIsWhitespace()
+    {
+        var result = await _controller.PatchStatus(
+            Guid.NewGuid(), Guid.NewGuid(), new PatchTaskStatusRequest("   "));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task PatchStatus_ReturnsNotFound_WhenServiceReturnsNull()
+    {
+        var projectId = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
+
+        _mockService
+            .Setup(s => s.UpdateStatusAsync(projectId, taskId, "Done"))
+            .ReturnsAsync((TaskResponse?)null);
+
+        var result = await _controller.PatchStatus(projectId, taskId, new PatchTaskStatusRequest("Done"));
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task PatchStatus_ReturnsOk_WithUpdatedTask()
+    {
+        var projectId = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
+        var response = new TaskResponse(taskId, projectId, "Title", null, "InProgress", "Low", DateTime.UtcNow);
+
+        _mockService
+            .Setup(s => s.UpdateStatusAsync(projectId, taskId, "InProgress"))
+            .ReturnsAsync(response);
+
+        var result = await _controller.PatchStatus(projectId, taskId, new PatchTaskStatusRequest("InProgress"));
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var returned = Assert.IsType<TaskResponse>(ok.Value);
+        Assert.Equal("InProgress", returned.Status);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task PatchStatus_CallsService_WithCorrectArguments()
+    {
+        var projectId = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
+        var response = new TaskResponse(taskId, projectId, "Title", null, "Done", "Low", DateTime.UtcNow);
+
+        _mockService
+            .Setup(s => s.UpdateStatusAsync(projectId, taskId, "Done"))
+            .ReturnsAsync(response);
+
+        await _controller.PatchStatus(projectId, taskId, new PatchTaskStatusRequest("Done"));
+
+        _mockService.Verify(s => s.UpdateStatusAsync(projectId, taskId, "Done"), Times.Once);
+    }
+
+    [Fact]
     public async System.Threading.Tasks.Task GetById_ReturnsNotFound_WhenServiceReturnsNull()
     {
         var projectId = Guid.NewGuid();
