@@ -68,6 +68,17 @@ public class TaskService(AppDbContext db) : ITaskService
         return ToResponse(task);
     }
 
+    public async Task<TaskResponse?> UpdateStatusAsync(Guid projectId, Guid taskId, string status)
+    {
+        var task = await db.Tasks.FirstOrDefaultAsync(t => t.Id == taskId && t.ProjectId == projectId);
+        if (task is null)
+            return null;
+
+        task.Status = status;
+        await db.SaveChangesAsync();
+        return ToResponse(task);
+    }
+
     public async Task<bool> DeleteAsync(Guid projectId, Guid taskId)
     {
         var task = await db.Tasks.FirstOrDefaultAsync(t => t.Id == taskId && t.ProjectId == projectId);

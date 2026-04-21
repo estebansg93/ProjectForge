@@ -38,6 +38,25 @@ public class TasksController(ITaskService taskService) : ControllerBase
     }
 
     /// <summary>
+    /// Updates the status of a task.
+    /// </summary>
+    [HttpPatch("{taskId:guid}/status")]
+    [ProducesResponseType(typeof(TaskResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> PatchStatus(Guid projectId, Guid taskId, [FromBody] PatchTaskStatusRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Status))
+            return BadRequest(new { message = "Status is required." });
+
+        var task = await taskService.UpdateStatusAsync(projectId, taskId, request.Status);
+        if (task is null)
+            return NotFound(new { message = "Task not found." });
+
+        return Ok(task);
+    }
+
+    /// <summary>
     /// Creates a new task under a project. Accessible by any authenticated user.
     /// </summary>
     [HttpPost]
@@ -50,8 +69,6 @@ public class TasksController(ITaskService taskService) : ControllerBase
 
         var task = await taskService.CreateAsync(projectId, request);
         return Created($"api/projects/{projectId}/tasks/{task.Id}", task);
-
-        // TODO: Add PATCH /api/projects/{projectId}/tasks/{taskId}/status for status transitions.
     }
 
     /// <summary>

@@ -10,6 +10,6 @@ public interface ITaskService
 
     Task<TaskResponse?> UpdateAsync(Guid projectId, Guid taskId, UpdateTaskRequest request);
     Task<bool> DeleteAsync(Guid projectId, Guid taskId);
-    // TODO: Task<TaskResponse?> UpdateStatusAsync(Guid taskId, string status); — useful partial endpoint
+    Task<TaskResponse?> UpdateStatusAsync(Guid projectId, Guid taskId, string status);
     // TODO: Add filtering by status/priority.
 }

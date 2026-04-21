@@ -78,6 +78,88 @@ public class TaskServiceTests
     }
 
     [Fact]
+    public async System.Threading.Tasks.Task UpdateStatusAsync_ReturnsNull_WhenTaskDoesNotExist()
+    {
+        using var db = CreateDb();
+        var service = new TaskService(db);
+
+        var result = await service.UpdateStatusAsync(Guid.NewGuid(), Guid.NewGuid(), "InProgress");
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task UpdateStatusAsync_ReturnsNull_WhenTaskBelongsToDifferentProject()
+    {
+        using var db = CreateDb();
+        var service = new TaskService(db);
+
+        var taskId = Guid.NewGuid();
+        SeedTask(db, projectId: Guid.NewGuid(), taskId: taskId);
+
+        var result = await service.UpdateStatusAsync(projectId: Guid.NewGuid(), taskId: taskId, "Done");
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task UpdateStatusAsync_UpdatesStatus_WhenTaskExists()
+    {
+        using var db = CreateDb();
+        var service = new TaskService(db);
+
+        var projectId = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
+        SeedTask(db, projectId, taskId);
+
+        var result = await service.UpdateStatusAsync(projectId, taskId, "InProgress");
+
+        Assert.NotNull(result);
+        Assert.Equal("InProgress", result.Status);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task UpdateStatusAsync_PreservesOtherFields()
+    {
+        using var db = CreateDb();
+        var service = new TaskService(db);
+
+        var projectId = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
+        var seeded = SeedTask(db, projectId, taskId);
+
+        var result = await service.UpdateStatusAsync(projectId, taskId, "Done");
+
+        Assert.NotNull(result);
+        Assert.Equal(seeded.Title, result.Title);
+        Assert.Equal(seeded.Description, result.Description);
+        Assert.Equal(seeded.Priority, result.Priority);
+        Assert.Equal(seeded.CreatedAt, result.CreatedAt);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task UpdateStatusAsync_PersistsStatus_ToDatabase()
+    {
+        var options = CreateOptions();
+        var projectId = Guid.NewGuid();
+        var taskId = Guid.NewGuid();
+
+        using (var db = new AppDbContext(options))
+        {
+            SeedTask(db, projectId, taskId);
+            var service = new TaskService(db);
+            await service.UpdateStatusAsync(projectId, taskId, "Done");
+        }
+
+        using (var db = new AppDbContext(options))
+        {
+            var stored = await db.Tasks.FindAsync(taskId);
+            Assert.NotNull(stored);
+            Assert.Equal("Done", stored.Status);
+        }
+    }
+
+    [Fact]
     public async System.Threading.Tasks.Task UpdateAsync_ReturnsNull_WhenTaskDoesNotExist()
     {
         using var db = CreateDb();
